@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes App</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind Typography Plugin -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {}
+            },
+            plugins: [
+                function({ addBase, theme }) {
+                    addBase({
+                        'h1': { fontSize: theme('fontSize.2xl'), fontWeight: theme('fontWeight.bold'), marginBottom: theme('spacing.4') },
+                        'h2': { fontSize: theme('fontSize.xl'), fontWeight: theme('fontWeight.bold'), marginBottom: theme('spacing.3') },
+                        'h3': { fontSize: theme('fontSize.lg'), fontWeight: theme('fontWeight.bold'), marginBottom: theme('spacing.2') },
+                        'p': { marginBottom: theme('spacing.4') },
+                        'ul': { listStyleType: 'disc', paddingLeft: theme('spacing.4'), marginBottom: theme('spacing.4') },
+                        'ol': { listStyleType: 'decimal', paddingLeft: theme('spacing.4'), marginBottom: theme('spacing.4') },
+                        'li': { marginBottom: theme('spacing.2') },
+                        'blockquote': { borderLeftWidth: '4px', borderLeftColor: theme('colors.gray.300'), paddingLeft: theme('spacing.4'), fontStyle: 'italic' },
+                        'code': { backgroundColor: theme('colors.gray.100'), padding: theme('spacing.1'), borderRadius: theme('borderRadius.sm') },
+                        'pre': { backgroundColor: theme('colors.gray.100'), padding: theme('spacing.4'), borderRadius: theme('borderRadius.lg'), overflowX: 'auto' }
+                    })
+                }
+            ]
+        }
+    </script>
+    <!-- Markdown Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Custom styles -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Header with Add Note button -->
+    <header class="bg-white shadow-sm p-4">
+        <div class="container mx-auto flex justify-end">
+            <button id="addNoteBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
+                Add Note
+            </button>
+        </div>
+    </header>
+
+    <!-- Main content area -->
+    <main class="container mx-auto p-4">
+        <!-- Notes grid -->
+        <div id="notesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Notes will be dynamically inserted here -->
+        </div>
+    </main>
+
+    <!-- Add/Edit Note Modal -->
+    <div id="noteModal" class="fixed inset-0 bg-black bg-opacity-50 hidden">
+        <div class="bg-white rounded-lg p-6 max-w-4xl mx-auto mt-20">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold" id="modalTitle">Add New Note</h2>
+                <button id="closeModal" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <!-- Editor -->
+                <div class="border rounded-lg p-4">
+                    <textarea id="noteEditor" class="w-full h-96 p-2 border rounded" placeholder="Write your note in markdown..."></textarea>
+                    <div class="mt-4">
+                        <input type="text" id="noteTags" class="w-full p-2 border rounded" placeholder="Add tags (comma separated)">
+                    </div>
+                </div>
+                <!-- Preview -->
+                <div class="border rounded-lg p-4">
+                    <div id="notePreview" class="prose max-w-none h-96 overflow-y-auto"></div>
+                </div>
+            </div>
+            <div class="mt-4 flex justify-end">
+                <button id="saveNote" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
+                    Save Note
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Note Modal -->
+    <div id="viewNoteModal" class="fixed inset-0 bg-black bg-opacity-50 hidden">
+        <div class="bg-white rounded-lg p-6 max-w-2xl mx-auto mt-20">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold" id="viewNoteTitle"></h2>
+                <button id="closeViewModal" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div id="viewNoteContent" class="prose max-w-none"></div>
+            <div id="viewNoteTags" class="mt-4 flex flex-wrap gap-2"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html> 
