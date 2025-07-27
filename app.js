@@ -48,7 +48,7 @@ const API = {
 
     // Delete a note
     deleteNote: async (id) => {
-        const res = await fetch(`https://nikhilkuriakose.app.n8n.cloud/webhook/1ec0df4a-ba79-4abb-b755-c208e6aaa82a/notes/${id}`, {
+        const res = await fetch(`https://nikhilkuriakose.app.n8n.cloud/webhook/1ec0df4a-ba79-4abb-b755-c208e6aaa82a/notesd/${id}`, {
             method: 'POST'
         });
         if (!res.ok) throw new Error('Failed to delete note');
