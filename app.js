@@ -2,40 +2,57 @@
 const API = {
     // Get all notes
     getAllNotes: async () => {
-        // Mock response
-        return [
-            {
-                id: 1,
-                title: "Welcome to Notes App",
-                content: "# Welcome!\n\nThis is a sample note to get you started.\n\n## Features\n- Markdown support\n- Tags\n- Preview while editing",
-                tags: ["welcome", "guide"],
-                createdAt: "2024-03-20T10:00:00Z"
-            },
-            {
-                id: 2,
-                title: "Meeting Notes",
-                content: "## Project Updates\n\n1. Frontend development\n2. API integration\n3. Testing\n\n### Next Steps\n- [ ] Complete UI\n- [ ] Add authentication\n- [ ] Deploy",
-                tags: ["meeting", "project"],
-                createdAt: "2024-03-19T15:30:00Z"
-            }
-        ];
+        const res = await fetch('https://nikhilkuriakose.app.n8n.cloud/webhook/notes');
+        if (!res.ok) throw new Error('Failed to fetch notes');
+        // API now returns a raw array of notes
+        return await res.json();
     },
 
     // Get a single note
     getNote: async (id) => {
-        const notes = await API.getAllNotes();
-        return notes.find(note => note.id === id);
+        const res = await fetch(`https://nikhilkuriakose.app.n8n.cloud/webhook/1ec0df4a-ba79-4abb-b755-c208e6aaa82a/notes/${id}`);
+        if (!res.ok) throw new Error('Failed to fetch note');
+        return await res.json();
     },
 
     // Create a new note
     createNote: async (note) => {
-        // In a real app, this would make an API call
-        console.log('Creating note:', note);
-        return {
-            ...note,
-            id: Date.now(),
-            createdAt: new Date().toISOString()
-        };
+        const res = await fetch('https://nikhilkuriakose.app.n8n.cloud/webhook/notes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: note.title,
+                tags: note.tags,
+                body_markdown: note.content
+            })
+        });
+        if (!res.ok) throw new Error('Failed to create note');
+        return await res.json();
+    },
+
+    // Update an existing note
+    updateNote: async (id, note) => {
+        
+        const res = await fetch(`https://nikhilkuriakose.app.n8n.cloud/webhook/1ec0df4a-ba79-4abb-b755-c208e6aaa82a/notes/${id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: note.title,
+                tags: note.tags,
+                body_markdown: note.content
+            })
+        });
+        if (!res.ok) throw new Error('Failed to update note');
+        return
+    },
+
+    // Delete a note
+    deleteNote: async (id) => {
+        const res = await fetch(`https://nikhilkuriakose.app.n8n.cloud/webhook/1ec0df4a-ba79-4abb-b755-c208e6aaa82a/notes/${id}`, {
+            method: 'DELETE'
+        });
+        if (!res.ok) throw new Error('Failed to delete note');
+        return true;
     }
 };
 
@@ -91,6 +108,7 @@ elements.closeModal.addEventListener('click', () => {
 });
 
 elements.closeViewModal.addEventListener('click', () => {
+    cleanupViewModal();
     elements.viewNoteModal.classList.add('hidden');
 });
 
@@ -102,19 +120,26 @@ elements.noteEditor.addEventListener('input', () => {
 elements.saveNote.addEventListener('click', async () => {
     const content = elements.noteEditor.value;
     const tags = elements.noteTags.value.split(',').map(tag => tag.trim()).filter(Boolean);
-    
     // Extract title from first line of content
     const title = content.split('\n')[0].replace(/^#\s*/, '') || 'Untitled Note';
-    
     const note = {
         title,
         content,
         tags
     };
-
-    await API.createNote(note);
-    elements.noteModal.classList.add('hidden');
-    loadNotes();
+    try {
+        if (currentNoteId) {
+            // Update existing note
+            await API.updateNote(currentNoteId, note);
+        } else {
+            // Create new note
+            await API.createNote(note);
+        }
+        elements.noteModal.classList.add('hidden');
+        loadNotes();
+    } catch (e) {
+        alert('Failed to save note.');
+    }
 });
 
 // Close modal when clicking outside
@@ -126,45 +151,120 @@ elements.noteModal.addEventListener('click', (e) => {
 
 elements.viewNoteModal.addEventListener('click', (e) => {
     if (e.target === elements.viewNoteModal) {
+        cleanupViewModal();
         elements.viewNoteModal.classList.add('hidden');
     }
 });
 
 // Functions
-function createNoteCard(note) {
-    const card = document.createElement('div');
-    card.className = 'note-card bg-white rounded-lg shadow p-4 cursor-pointer';
-    
-    // Get preview content (first 100 characters)
-    const previewContent = note.content.replace(/^#\s*/, '').substring(0, 100) + '...';
-    
-    card.innerHTML = `
-        <h3 class="text-lg font-semibold mb-2">${note.title}</h3>
-        <p class="text-gray-600 mb-4">${previewContent}</p>
-        <div class="flex flex-wrap gap-2">
-            ${note.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
-        </div>
-    `;
-
-    card.addEventListener('click', () => showNote(note));
-    return card;
+// Add this new function to handle modal cleanup
+function cleanupViewModal() {
+    const header = elements.viewNoteModal.querySelector('.flex.justify-between');
+    const headerActions = header.querySelector('.header-actions');
+    if (headerActions) {
+        // Get the close button from header actions
+        const closeButton = headerActions.querySelector('button:last-child');
+        if (closeButton) {
+            // Remove it from header actions
+            closeButton.remove();
+            // Add it back to the header
+            header.appendChild(closeButton);
+        }
+        // Remove the header actions container
+        headerActions.remove();
+    }
 }
 
 async function showNote(note) {
-    elements.viewNoteTitle.textContent = note.title;
-    elements.viewNoteContent.innerHTML = marked.parse(note.content);
-    elements.viewNoteTags.innerHTML = note.tags.map(tag => 
+    // Fetch full note details
+    let fullNote = note;
+    try {
+        fullNote = await API.getNote(note.id);
+    } catch (e) {
+        // fallback to preview if fetch fails
+    }
+    elements.viewNoteTitle.textContent = fullNote.title;
+    elements.viewNoteContent.innerHTML = marked.parse(fullNote.body || '');
+    elements.viewNoteTags.innerHTML = (Array.isArray(fullNote.tags) ? fullNote.tags : []).map(tag => 
         `<span class="tag">${tag}</span>`
     ).join('');
+    
+    // Find the header and clear any existing actions and orphaned close buttons
+    const header = elements.viewNoteModal.querySelector('.flex.justify-between');
+    // Remove all existing .header-actions containers
+    header.querySelectorAll('.header-actions').forEach(el => el.remove());
+    // Remove any orphaned close buttons (by checking for the SVG inside the button)
+    header.querySelectorAll('button').forEach(btn => {
+        if (btn.querySelector('svg')) btn.remove();
+    });
+    
+    // Create header actions container
+    const headerActions = document.createElement('div');
+    headerActions.className = 'flex items-center gap-2 header-actions';
+    
+    // Add edit button
+    const editButton = document.createElement('button');
+    editButton.className = 'bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg';
+    editButton.textContent = 'Edit';
+    editButton.onclick = () => {
+        // Close view modal and open edit modal
+        cleanupViewModal();
+        elements.viewNoteModal.classList.add('hidden');
+        currentNoteId = fullNote.id;
+        elements.noteEditor.value = fullNote.body || '';
+        elements.noteTags.value = (fullNote.tags || []).join(', ');
+        elements.notePreview.innerHTML = marked.parse(fullNote.body || '');
+        elements.modalTitle.textContent = 'Edit Note';
+        elements.noteModal.classList.remove('hidden');
+        elements.noteEditor.focus();
+    };
+    
+    // Add edit button to header actions
+    headerActions.appendChild(editButton);
+    
+    // Get the close button and move it into the header actions if found
+    const closeButton = elements.viewNoteModal.querySelector('#closeViewModal');
+    if (closeButton) {
+        closeButton.remove();
+        headerActions.appendChild(closeButton);
+    }
+    // Always add the header actions to the header
+    header.appendChild(headerActions);
+    
     elements.viewNoteModal.classList.remove('hidden');
 }
 
 async function loadNotes() {
-    const notes = await API.getAllNotes();
-    elements.notesGrid.innerHTML = '';
-    notes.forEach(note => {
-        elements.notesGrid.appendChild(createNoteCard(note));
-    });
+    elements.notesGrid.innerHTML = '<div class="col-span-full text-center text-gray-500">Loading notes...</div>';
+    try {
+        let notes = await API.getAllNotes();
+        if (!notes || notes.length === 0) {
+            elements.notesGrid.innerHTML = '<div class="col-span-full text-center text-gray-500">No notes found.</div>';
+            return;
+        }
+        // Normalize tags to always be an array
+        notes = notes.map(note => ({
+            ...note,
+            tags: Array.isArray(note.tags) ? note.tags : []
+        }));
+        elements.notesGrid.innerHTML = '';
+        notes.forEach(note => {
+            // Create a card with title and tags only
+            const card = document.createElement('div');
+            card.className = 'note-card bg-white rounded-lg shadow p-4 cursor-pointer';
+            card.innerHTML = `
+                <h3 class="text-lg font-semibold mb-2">${note.title}</h3>
+                <div class="flex flex-wrap gap-2">
+                    ${note.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                </div>
+            `;
+            card.addEventListener('click', () => showNote(note));
+            elements.notesGrid.appendChild(card);
+        });
+    } catch (e) {
+        elements.notesGrid.innerHTML = '<div class="col-span-full text-center text-red-500">Failed to load notes.</div>';
+        console.error(e);
+    }
 }
 
 // Initialize
