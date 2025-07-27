@@ -189,14 +189,13 @@ async function showNote(note) {
         `<span class="tag">${tag}</span>`
     ).join('');
     
-    // Find the header and clear any existing actions and orphaned close buttons
+    // Find the header and clear any existing actions
     const header = elements.viewNoteModal.querySelector('.flex.justify-between');
     // Remove all existing .header-actions containers
     header.querySelectorAll('.header-actions').forEach(el => el.remove());
-    // Remove any orphaned close buttons (by checking for the SVG inside the button)
-    header.querySelectorAll('button').forEach(btn => {
-        if (btn.querySelector('svg')) btn.remove();
-    });
+    // Remove any closeViewModal button left in the header
+    const orphanClose = header.querySelector('#closeViewModal');
+    if (orphanClose) orphanClose.remove();
     
     // Create header actions container
     const headerActions = document.createElement('div');
@@ -218,17 +217,13 @@ async function showNote(note) {
         elements.noteModal.classList.remove('hidden');
         elements.noteEditor.focus();
     };
-    
-    // Add edit button to header actions
     headerActions.appendChild(editButton);
     
-    // Get the close button and move it into the header actions if found
-    const closeButton = elements.viewNoteModal.querySelector('#closeViewModal');
+    // Always move the close button into the header actions
+    const closeButton = elements.closeViewModal;
     if (closeButton) {
-        closeButton.remove();
         headerActions.appendChild(closeButton);
     }
-    // Always add the header actions to the header
     header.appendChild(headerActions);
     
     elements.viewNoteModal.classList.remove('hidden');
