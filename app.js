@@ -34,7 +34,7 @@ const API = {
     updateNote: async (id, note) => {
         
         const res = await fetch(`https://nikhilkuriakose.app.n8n.cloud/webhook/1ec0df4a-ba79-4abb-b755-c208e6aaa82a/notes/${id}`, {
-            method: 'POST',
+            method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 title: note.title,
